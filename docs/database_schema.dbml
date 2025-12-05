@@ -1,0 +1,1110 @@
+// Hyperswitch Database Schema
+// Generated from diesel schema.rs (crates/diesel_models/src/schema.rs)
+// This file represents the latest database design of the Hyperswitch project
+// 
+// Usage:
+// - View online at https://dbdiagram.io
+// - Generate ER diagrams using dbdocs.io or dbdiagram.io
+
+Project hyperswitch {
+  database_type: 'PostgreSQL'
+  Note: '''Hyperswitch - Composable Open-Source Payments Infrastructure
+  
+  Multi-tenant payment orchestration platform with support for:
+  - Payment processing across multiple gateways
+  - Fraud detection and risk management  
+  - User authentication and authorization
+  - Subscription and recurring billing
+  - Comprehensive audit and event tracking
+  '''
+}
+
+
+// ============================================
+// CORE PAYMENT TABLES
+// ============================================
+
+Table payment_intent {
+  payment_id varchar(64) [pk, note: 'Unique payment identifier']
+  merchant_id varchar(64) [pk]
+  status varchar(64) [not null, note: 'Payment status']
+  amount bigint [not null]
+  currency varchar(3)
+  amount_captured bigint
+  customer_id varchar(64)
+  description varchar(255)
+  return_url varchar(255)
+  metadata jsonb
+  connector_id varchar(64)
+  shipping_address_id varchar(64)
+  billing_address_id varchar(64)
+  statement_descriptor_name varchar(255)
+  created_at timestamp [not null]
+  modified_at timestamp [not null]
+  client_secret varchar(128)
+  active_attempt_id varchar(64) [not null]
+  business_country varchar(2)
+  profile_id varchar(64)
+  attempt_count smallint [not null]
+  updated_by varchar(32) [not null]
+  fingerprint_id varchar(64)
+  customer_details bytea [note: 'Encrypted customer data']
+  billing_details bytea
+  shipping_details bytea
+  shipping_cost bigint
+  organization_id varchar(32) [not null]
+  tax_details jsonb
+  request_extended_authorization boolean
+  psd2_sca_exemption_type varchar(64)
+  split_payments jsonb
+  platform_merchant_id varchar(64)
+  force_3ds_challenge boolean
+  processor_merchant_id varchar(64)
+  created_by varchar(255)
+  payment_channel varchar(64)
+  tax_status varchar(64)
+  discount_amount bigint
+  order_date timestamp
+  enable_partial_authorization boolean
+  enable_overcapture boolean
+  tokenization varchar(64)
+  
+  indexes {
+    (merchant_id, payment_id) [pk]
+    customer_id
+    profile_id
+    created_at
+    status
+  }
+  
+  Note: 'Core payment intent table - customer payment transactions'
+}
+
+Table payment_attempt {
+  attempt_id varchar(64) [pk, note: 'Unique attempt identifier']
+  merchant_id varchar(64) [pk]
+  payment_id varchar(64) [not null]
+  status varchar(64) [not null, note: 'Attempt status']
+  amount bigint [not null]
+  currency varchar(3)
+  save_to_locker boolean
+  connector varchar(64) [note: 'Payment gateway used']
+  error_message text
+  offer_amount bigint
+  surcharge_amount bigint
+  tax_amount bigint
+  payment_method_id varchar(64)
+  payment_method varchar(64)
+  connector_transaction_id varchar(128)
+  capture_method varchar(32)
+  capture_on timestamp
+  confirm boolean [not null]
+  authentication_type varchar(32)
+  created_at timestamp [not null]
+  modified_at timestamp [not null]
+  last_synced timestamp
+  cancellation_reason varchar(255)
+  amount_to_capture bigint
+  mandate_id varchar(64)
+  browser_info jsonb
+  error_code varchar(255)
+  payment_token varchar(128)
+  connector_metadata jsonb
+  payment_experience varchar(50)
+  payment_method_type varchar(64)
+  payment_method_data jsonb
+  business_sub_label varchar(64)
+  straight_through_algorithm jsonb
+  mandate_details jsonb
+  error_reason text
+  multiple_capture_count smallint
+  connector_response_reference_id varchar(128)
+  amount_capturable bigint [not null]
+  updated_by varchar(32) [not null]
+  merchant_connector_id varchar(32)
+  authentication_data json
+  unified_code varchar(255)
+  unified_message varchar(1024)
+  net_amount bigint
+  external_three_ds_authentication_attempted boolean
+  authentication_connector varchar(64)
+  authentication_id varchar(64)
+  mandate_data jsonb
+  fingerprint_id varchar(64)
+  charge_id varchar(64)
+  client_source varchar(64)
+  client_version varchar(64)
+  customer_acceptance jsonb
+  profile_id varchar(64) [not null]
+  organization_id varchar(32) [not null]
+  card_network varchar(32)
+  shipping_cost bigint
+  connector_transaction_data varchar(512)
+  connector_mandate_detail jsonb
+  request_extended_authorization boolean
+  extended_authorization_applied boolean
+  capture_before timestamp
+  charges jsonb
+  issuer_error_code varchar(64)
+  issuer_error_message text
+  processor_merchant_id varchar(64)
+  created_by varchar(255)
+  routing_approach varchar(64)
+  connector_request_reference_id varchar(255)
+  network_transaction_id varchar(255)
+  is_overcapture_enabled boolean
+  network_details jsonb
+  is_stored_credential boolean
+  authorized_amount bigint
+  tokenization varchar(64)
+  
+  indexes {
+    (merchant_id, attempt_id) [pk]
+    payment_id
+    connector
+    created_at
+    status
+  }
+  
+  Note: 'Payment attempts - each payment can have multiple attempts'
+}
+
+Table refund {
+  merchant_id varchar(64) [pk]
+  refund_id varchar(64) [pk]
+  internal_reference_id varchar(64) [not null]
+  payment_id varchar(64) [not null]
+  connector_transaction_id varchar(128) [not null]
+  connector varchar(64) [not null]
+  connector_refund_id varchar(128)
+  external_reference_id varchar(64)
+  refund_type varchar(32) [not null]
+  total_amount bigint [not null]
+  currency varchar(3) [not null]
+  refund_amount bigint [not null]
+  refund_status varchar(32) [not null]
+  sent_to_gateway boolean [not null]
+  refund_error_message text
+  metadata json
+  refund_arn varchar(128)
+  created_at timestamp [not null]
+  modified_at timestamp [not null]
+  description varchar(255)
+  attempt_id varchar(64) [not null]
+  refund_reason varchar(255)
+  refund_error_code text
+  profile_id varchar(64)
+  updated_by varchar(32) [not null]
+  merchant_connector_id varchar(32)
+  charges jsonb
+  organization_id varchar(32) [not null]
+  split_refunds jsonb
+  unified_code varchar(255)
+  unified_message varchar(1024)
+  issuer_error_code varchar(64)
+  issuer_error_message text
+  
+  indexes {
+    (merchant_id, refund_id) [pk]
+    payment_id
+    connector
+    created_at
+  }
+  
+  Note: 'Refund transactions for payments'
+}
+
+Table captures {
+  capture_id varchar(64) [pk]
+  payment_id varchar(64) [not null]
+  merchant_id varchar(64) [not null]
+  status varchar(32) [not null]
+  amount bigint [not null]
+  currency varchar(3)
+  connector varchar(255) [not null]
+  error_message varchar(255)
+  error_code varchar(255)
+  tax_amount bigint
+  created_at timestamp [not null]
+  modified_at timestamp [not null]
+  authorized_attempt_id varchar(64) [not null]
+  connector_capture_id varchar(128)
+  capture_sequence smallint [not null]
+  
+  Note: 'Capture records for authorized payments'
+}
+
+Table incremental_authorization {
+  authorization_id varchar(64) [pk]
+  merchant_id varchar(64) [pk]
+  payment_id varchar(64) [not null]
+  amount bigint [not null]
+  created_at timestamp [not null]
+  modified_at timestamp [not null]
+  status varchar(64) [not null]
+  error_code varchar(255)
+  error_message text
+  connector_authorization_id varchar(64)
+  previously_authorized_amount bigint [not null]
+  
+  Note: 'Incremental authorization for increasing auth amounts'
+}
+
+
+// ============================================
+// MERCHANT & ORGANIZATION
+// ============================================
+
+Table merchant_account {
+  merchant_id varchar(64) [pk]
+  return_url varchar(255)
+  enable_payment_response_hash boolean [not null]
+  payment_response_hash_key varchar(255)
+  redirect_to_merchant_with_http_post boolean [not null]
+  merchant_name bytea [note: 'Encrypted merchant name']
+  merchant_details bytea
+  webhook_details json
+  sub_merchants_enabled boolean
+  parent_merchant_id varchar(64)
+  publishable_key varchar(128)
+  storage_scheme varchar(32) [not null]
+  locker_id varchar(64)
+  metadata jsonb
+  routing_algorithm json
+  primary_business_details json [not null]
+  intent_fulfillment_time bigint
+  created_at timestamp [not null]
+  modified_at timestamp [not null]
+  frm_routing_algorithm jsonb
+  payout_routing_algorithm jsonb
+  organization_id varchar(32) [not null]
+  is_recon_enabled boolean [not null]
+  default_profile varchar(64)
+  recon_status varchar(32) [not null]
+  payment_link_config jsonb
+  version varchar(32) [not null]
+  is_platform_account boolean [not null]
+  product_type varchar(64)
+  
+  Note: 'Merchant account configuration - primary merchant entity'
+}
+
+Table merchant_connector_account {
+  merchant_connector_id varchar(128) [pk]
+  merchant_id varchar(64) [not null]
+  connector_name varchar(64) [not null, note: 'Gateway: stripe, adyen, etc.']
+  connector_account_details bytea [not null, note: 'Encrypted credentials']
+  test_mode boolean
+  disabled boolean
+  payment_methods_enabled json
+  connector_type varchar(32) [not null]
+  metadata jsonb
+  connector_label varchar(255)
+  business_country varchar(2)
+  business_label varchar(255)
+  business_sub_label varchar(64)
+  frm_configs jsonb
+  created_at timestamp [not null]
+  modified_at timestamp [not null]
+  connector_webhook_details jsonb
+  profile_id varchar(64)
+  pm_auth_config jsonb
+  status varchar(32) [not null]
+  additional_merchant_data bytea
+  connector_wallets_details bytea
+  version varchar(32) [not null]
+  
+  Note: 'Payment gateway configurations for merchants'
+}
+
+Table merchant_key_store {
+  merchant_id varchar(64) [pk]
+  key bytea [not null, note: 'Encryption key']
+  created_at timestamp [not null]
+  
+  Note: 'Secure encryption key storage'
+}
+
+Table organization {
+  org_id varchar(32) [pk]
+  org_name text
+  organization_details jsonb
+  metadata jsonb
+  created_at timestamp [not null]
+  modified_at timestamp [not null]
+  organization_name text
+  version varchar(32) [not null]
+  organization_type varchar(64)
+  platform_merchant_id varchar(64)
+  
+  Note: 'Organizations - top-level entity containing merchants'
+}
+
+Table business_profile {
+  profile_id varchar(64) [pk]
+  merchant_id varchar(64) [not null]
+  profile_name varchar(64) [not null]
+  created_at timestamp [not null]
+  modified_at timestamp [not null]
+  return_url text
+  enable_payment_response_hash boolean [not null]
+  payment_response_hash_key varchar(255)
+  webhook_details json
+  metadata json
+  routing_algorithm json
+  intent_fulfillment_time bigint
+  frm_routing_algorithm jsonb
+  payout_routing_algorithm jsonb
+  is_recon_enabled boolean [not null]
+  payment_link_config jsonb
+  session_expiry bigint
+  authentication_connector_details jsonb
+  payout_link_config jsonb
+  is_extended_card_info_enabled boolean
+  extended_card_info_config jsonb
+  version varchar(32) [not null]
+  dynamic_routing_algorithm json
+  is_network_tokenization_enabled boolean [not null]
+  is_auto_retries_enabled boolean
+  max_auto_retries_enabled smallint
+  is_click_to_pay_enabled boolean [not null]
+  authentication_product_ids jsonb
+  is_clear_pan_retries_enabled boolean [not null]
+  force_3ds_challenge boolean
+  is_debit_routing_enabled boolean [not null]
+  merchant_business_country varchar(2)
+  three_ds_decision_rule_algorithm jsonb
+  acquirer_config_map jsonb
+  dispute_polling_interval integer
+  is_manual_retry_enabled boolean
+  is_external_vault_enabled boolean
+  external_vault_connector_details jsonb
+  
+  Note: 'Business profiles - multiple payment configs per merchant'
+}
+
+// ============================================
+// CUSTOMER & ADDRESS
+// ============================================
+
+Table customers {
+  customer_id varchar(64) [pk]
+  merchant_id varchar(64) [pk]
+  name bytea [note: 'Encrypted']
+  email bytea [note: 'Encrypted']
+  phone bytea [note: 'Encrypted']
+  phone_country_code varchar(8)
+  description varchar(255)
+  created_at timestamp [not null]
+  metadata json
+  connector_customer jsonb
+  modified_at timestamp [not null]
+  address_id varchar(64)
+  default_payment_method_id varchar(64)
+  updated_by varchar(64)
+  version varchar(32) [not null]
+  created_by varchar(255)
+  last_modified_by varchar(255)
+  
+  indexes {
+    (customer_id, merchant_id) [pk]
+    email
+    created_at
+  }
+  
+  Note: 'Customer records'
+}
+
+Table address {
+  address_id varchar(64) [pk]
+  city varchar(128)
+  country varchar(2)
+  line1 bytea [note: 'Encrypted']
+  line2 bytea
+  line3 bytea
+  state bytea
+  zip bytea
+  first_name bytea
+  last_name bytea
+  phone_number bytea
+  country_code varchar(8)
+  created_at timestamp [not null]
+  modified_at timestamp [not null]
+  customer_id varchar(64)
+  merchant_id varchar(64) [not null]
+  payment_id varchar(64)
+  updated_by varchar(32) [not null]
+  email bytea
+  
+  Note: 'Address information for billing and shipping'
+}
+
+
+// ============================================
+// PAYMENT METHODS & MANDATES
+// ============================================
+
+Table payment_methods {
+  payment_method_id varchar(64) [pk]
+  customer_id varchar(64) [not null]
+  merchant_id varchar(64) [not null]
+  accepted_currency varchar(3)
+  scheme varchar(32) [note: 'visa, mastercard, etc.']
+  token varchar(128)
+  cardholder_name varchar(255)
+  issuer_name varchar(64)
+  issuer_country varchar(64)
+  is_stored boolean
+  created_at timestamp [not null]
+  last_modified timestamp [not null]
+  payment_method varchar(64) [note: 'card, bank_transfer, wallet']
+  payment_method_type varchar(64) [note: 'credit, debit, paypal']
+  payment_method_issuer varchar(128)
+  metadata json
+  payment_method_data bytea [note: 'Encrypted payment details']
+  locker_id varchar(64)
+  last_used_at timestamp [not null]
+  connector_mandate_details jsonb
+  customer_acceptance jsonb
+  status varchar(64) [not null]
+  network_transaction_id varchar(255)
+  client_secret varchar(128)
+  payment_method_billing_address bytea
+  updated_by varchar(64)
+  version varchar(32) [not null]
+  network_token_locker_id varchar(64)
+  network_token_payment_method_data bytea
+  external_vault_source varchar(64)
+  created_by varchar(255)
+  last_modified_by varchar(255)
+  
+  Note: 'Stored payment methods for customers'
+}
+
+Table mandate {
+  mandate_id varchar(64) [pk]
+  customer_id varchar(64) [not null]
+  merchant_id varchar(64) [not null]
+  payment_method_id varchar(64) [not null]
+  mandate_status varchar(32) [not null]
+  mandate_type varchar(32) [not null]
+  customer_accepted_at timestamp
+  customer_ip_address varchar(64)
+  customer_user_agent varchar(255)
+  network_transaction_id varchar(128)
+  previous_attempt_id varchar(64)
+  created_at timestamp [not null]
+  mandate_amount bigint
+  mandate_currency varchar(3)
+  amount_captured bigint
+  connector varchar(64) [not null]
+  connector_mandate_id varchar(128)
+  start_date timestamp
+  end_date timestamp
+  metadata jsonb
+  connector_mandate_ids jsonb
+  original_payment_id varchar(64)
+  merchant_connector_id varchar(32)
+  updated_by varchar(64)
+  
+  Note: 'Mandate agreements for recurring payments'
+}
+
+// ============================================
+// AUTHENTICATION & 3DS
+// ============================================
+
+Table authentication {
+  authentication_id varchar(64) [pk]
+  merchant_id varchar(64) [not null]
+  authentication_connector varchar(64)
+  connector_authentication_id varchar(64)
+  authentication_data jsonb
+  payment_method_id varchar(64) [not null]
+  authentication_type varchar(64)
+  authentication_status varchar(64) [not null]
+  authentication_lifecycle_status varchar(64) [not null]
+  created_at timestamp [not null]
+  modified_at timestamp [not null]
+  error_message text
+  error_code varchar(64)
+  connector_metadata jsonb
+  maximum_supported_version jsonb
+  threeds_server_transaction_id varchar(64)
+  cavv varchar(64) [note: 'Auth Verification Value']
+  authentication_flow_type varchar(64)
+  message_version jsonb
+  eci varchar(64) [note: 'E-Commerce Indicator']
+  trans_status varchar(64)
+  acquirer_bin varchar(64)
+  acquirer_merchant_id varchar(64)
+  three_ds_method_data varchar(255)
+  three_ds_method_url varchar(255)
+  acs_url varchar(255)
+  challenge_request varchar(255)
+  acs_reference_number varchar(255)
+  acs_trans_id varchar(255)
+  acs_signed_content varchar(255)
+  profile_id varchar(64) [not null]
+  payment_id varchar(255)
+  merchant_connector_id varchar(128)
+  ds_trans_id varchar(64)
+  directory_server_id varchar(128)
+  acquirer_country_code varchar(64)
+  service_details jsonb
+  organization_id varchar(32) [not null]
+  authentication_client_secret varchar(128)
+  force_3ds_challenge boolean
+  psd2_sca_exemption_type varchar(64)
+  return_url varchar(2048)
+  amount bigint
+  currency varchar(3)
+  billing_address bytea
+  shipping_address bytea
+  browser_info jsonb
+  email bytea
+  customer_details bytea
+  
+  Note: '3DS authentication records for card payments'
+}
+
+// ============================================
+// FRAUD & RISK MANAGEMENT
+// ============================================
+
+Table fraud_check {
+  frm_id varchar(64) [pk]
+  payment_id varchar(64) [pk]
+  merchant_id varchar(64) [pk]
+  attempt_id varchar(64) [pk]
+  created_at timestamp [not null]
+  frm_name varchar(255) [not null, note: 'Fraud provider']
+  frm_transaction_id varchar(255)
+  frm_transaction_type varchar(32) [not null]
+  frm_status varchar(32) [not null]
+  frm_score integer [note: 'Risk score']
+  frm_reason jsonb
+  frm_error varchar(255)
+  payment_details jsonb
+  metadata jsonb
+  modified_at timestamp [not null]
+  last_step varchar(64) [not null]
+  payment_capture_method varchar(32)
+  
+  Note: 'Fraud and risk management checks'
+}
+
+Table blocklist {
+  merchant_id varchar(64) [pk]
+  fingerprint_id varchar(64) [pk]
+  data_kind varchar(32) [not null, note: 'card_bin, email, ip']
+  metadata jsonb
+  created_at timestamp [not null]
+  
+  Note: 'Blocklist entries for fraud prevention'
+}
+
+Table blocklist_fingerprint {
+  merchant_id varchar(64) [pk]
+  fingerprint_id varchar(64) [pk]
+  data_kind varchar(32) [not null]
+  encrypted_fingerprint text [not null]
+  created_at timestamp [not null]
+  
+  Note: 'Encrypted fingerprints for blocklist'
+}
+
+Table blocklist_lookup {
+  merchant_id varchar(64) [pk]
+  fingerprint text [pk]
+  
+  Note: 'Fast lookup for blocklist queries'
+}
+
+
+// ============================================
+// PAYOUTS, DISPUTES & EVENTS
+// ============================================
+
+Table payouts {
+  merchant_id varchar(64) [pk]
+  payout_id varchar(64) [pk]
+  customer_id varchar(64)
+  address_id varchar(64)
+  payout_type varchar(32)
+  payout_method_id varchar(64)
+  amount bigint [not null]
+  destination_currency varchar(3) [not null]
+  source_currency varchar(3) [not null]
+  description varchar(255)
+  recurring boolean [not null]
+  auto_fulfill boolean [not null]
+  return_url varchar(255)
+  entity_type varchar(64) [not null]
+  metadata jsonb
+  created_at timestamp [not null]
+  last_modified_at timestamp [not null]
+  attempt_count smallint [not null]
+  profile_id varchar(64) [not null]
+  status varchar(32) [not null]
+  confirm boolean
+  payout_link_id varchar(255)
+  client_secret varchar(128)
+  priority varchar(32)
+  organization_id varchar(32)
+  
+  Note: 'Payout transactions for disbursements'
+}
+
+Table payout_attempt {
+  merchant_id varchar(64) [pk]
+  payout_attempt_id varchar(64) [pk]
+  payout_id varchar(64) [not null]
+  customer_id varchar(64)
+  address_id varchar(64)
+  connector varchar(64)
+  connector_payout_id varchar(128)
+  payout_token varchar(64)
+  status varchar(32) [not null]
+  is_eligible boolean
+  error_message text
+  error_code varchar(64)
+  business_country varchar(2)
+  business_label varchar(64)
+  created_at timestamp [not null]
+  last_modified_at timestamp [not null]
+  profile_id varchar(64) [not null]
+  merchant_connector_id varchar(32)
+  routing_info jsonb
+  unified_code varchar(255)
+  unified_message varchar(1024)
+  additional_payout_method_data jsonb
+  
+  Note: 'Payout attempt records'
+}
+
+Table dispute {
+  dispute_id varchar(64) [pk]
+  amount varchar(255) [not null]
+  currency varchar(255) [not null]
+  dispute_stage varchar(32) [not null]
+  dispute_status varchar(32) [not null]
+  payment_id varchar(64) [not null]
+  attempt_id varchar(64) [not null]
+  merchant_id varchar(255) [not null]
+  connector_status varchar(255) [not null]
+  connector_dispute_id varchar(255) [not null]
+  connector_reason varchar(255)
+  connector_reason_code varchar(255)
+  challenge_required_by timestamp
+  connector_created_at timestamp
+  connector_updated_at timestamp
+  created_at timestamp [not null]
+  modified_at timestamp [not null]
+  connector varchar(255) [not null]
+  evidence jsonb [not null, note: 'Evidence documents']
+  profile_id varchar(64)
+  merchant_connector_id varchar(32)
+  dispute_amount bigint [not null]
+  organization_id varchar(32) [not null]
+  
+  Note: 'Dispute/Chargeback records'
+}
+
+Table events {
+  event_id varchar(64) [pk]
+  event_type varchar(32) [not null, note: 'Event types: payment_succeeded, etc.']
+  event_class varchar(32) [not null]
+  is_webhook_notified boolean [not null]
+  primary_object_id varchar(64) [not null]
+  primary_object_type varchar(32) [not null]
+  created_at timestamp [not null]
+  merchant_id varchar(64)
+  business_profile_id varchar(64)
+  primary_object_created_at timestamp
+  idempotent_event_id varchar(64)
+  initial_attempt_id varchar(64)
+  request bytea
+  response bytea
+  delivery_attempt varchar(32)
+  metadata jsonb
+  is_overall_delivery_successful boolean
+  
+  Note: 'Event tracking for webhooks and audit'
+}
+
+// ============================================
+// USER MANAGEMENT & ACCESS CONTROL
+// ============================================
+
+Table users {
+  user_id varchar(64) [pk]
+  email varchar(255) [not null, unique]
+  name varchar(255) [not null]
+  password varchar(255) [note: 'Hashed']
+  is_verified boolean [not null]
+  created_at timestamp [not null]
+  last_modified_at timestamp [not null]
+  totp_status varchar(32) [not null, note: '2FA status']
+  totp_secret bytea
+  totp_recovery_codes text
+  last_password_modified_at timestamp
+  lineage_context jsonb
+  
+  Note: 'User accounts for dashboard'
+}
+
+Table user_roles {
+  id integer [pk, increment]
+  user_id varchar(64) [not null]
+  merchant_id varchar(64)
+  role_id varchar(64) [not null]
+  org_id varchar(64)
+  status varchar(32) [not null]
+  created_by varchar(64) [not null]
+  last_modified_by varchar(64) [not null]
+  created_at timestamp [not null]
+  last_modified timestamp [not null]
+  profile_id varchar(64)
+  entity_id varchar(64)
+  entity_type varchar(64)
+  version varchar(32) [not null]
+  tenant_id varchar(64) [not null]
+  
+  Note: 'User-role assignments for RBAC'
+}
+
+Table roles {
+  role_id varchar(64) [pk]
+  role_name varchar(64) [not null]
+  merchant_id varchar(64)
+  org_id varchar(64) [not null]
+  groups text [not null, note: 'Permission groups']
+  scope varchar(32) [not null]
+  created_at timestamp [not null]
+  created_by varchar(64) [not null]
+  last_modified_at timestamp [not null]
+  last_modified_by varchar(64) [not null]
+  entity_type varchar(64) [not null]
+  profile_id varchar(64)
+  tenant_id varchar(64) [not null]
+  
+  Note: 'Role definitions with permissions'
+}
+
+Table api_keys {
+  key_id varchar(64) [pk]
+  merchant_id varchar(64) [not null]
+  name varchar(64) [not null]
+  description varchar(256)
+  hashed_api_key varchar(128) [not null]
+  prefix varchar(16) [not null]
+  created_at timestamp [not null]
+  expires_at timestamp
+  last_used timestamp
+  
+  Note: 'API keys for merchant authentication'
+}
+
+// ============================================
+// SUBSCRIPTIONS, ROUTING & MISC
+// ============================================
+
+Table subscription {
+  id varchar(128) [pk]
+  status varchar(128) [not null]
+  billing_processor varchar(128)
+  payment_method_id varchar(128)
+  merchant_connector_id varchar(128)
+  client_secret varchar(128)
+  connector_subscription_id varchar(128)
+  merchant_id varchar(64) [not null]
+  customer_id varchar(64) [not null]
+  metadata jsonb
+  created_at timestamp [not null]
+  modified_at timestamp [not null]
+  profile_id varchar(64) [not null]
+  plan_id varchar(128)
+  
+  Note: 'Subscription records for recurring billing'
+}
+
+Table invoice {
+  id varchar(64) [pk]
+  subscription_id varchar(128) [not null]
+  merchant_id varchar(64) [not null]
+  profile_id varchar(64) [not null]
+  merchant_connector_id varchar(128) [not null]
+  payment_intent_id varchar(64)
+  payment_method_id varchar(64)
+  customer_id varchar(64) [not null]
+  amount bigint [not null]
+  currency varchar(3) [not null]
+  status varchar(64) [not null]
+  provider_name varchar(128) [not null]
+  metadata jsonb
+  created_at timestamp [not null]
+  modified_at timestamp [not null]
+  
+  Note: 'Invoice records for subscriptions'
+}
+
+Table routing_algorithm {
+  algorithm_id varchar(64) [pk]
+  profile_id varchar(64) [not null]
+  merchant_id varchar(64) [not null]
+  name varchar(64) [not null]
+  description varchar(256)
+  kind varchar(32) [not null, note: 'priority, volume_split, advanced']
+  algorithm_data jsonb [not null, note: 'Routing rules']
+  created_at timestamp [not null]
+  modified_at timestamp [not null]
+  algorithm_for varchar(32) [not null]
+  
+  Note: 'Payment routing algorithms'
+}
+
+Table dynamic_routing_stats {
+  attempt_id varchar(64) [pk]
+  merchant_id varchar(64) [pk]
+  payment_id varchar(64) [not null]
+  profile_id varchar(64) [not null]
+  amount bigint [not null]
+  success_based_routing_connector varchar(64) [not null]
+  payment_connector varchar(64) [not null]
+  currency varchar(3)
+  payment_method varchar(64)
+  capture_method varchar(32)
+  authentication_type varchar(32)
+  payment_status varchar(32) [not null]
+  conclusive_classification varchar(32) [not null]
+  created_at timestamp [not null]
+  payment_method_type varchar(64)
+  
+  Note: 'Success-based routing statistics'
+}
+
+Table gateway_status_map {
+  connector varchar(64) [pk]
+  flow varchar(64) [pk]
+  sub_flow varchar(64) [pk]
+  code varchar(255) [pk]
+  message varchar(1024) [pk]
+  status varchar(64) [not null]
+  router_error varchar(64)
+  decision varchar(64) [not null, note: 'retry, do_not_retry']
+  created_at timestamp [not null]
+  last_modified timestamp [not null]
+  step_up_possible boolean [not null]
+  unified_code varchar(255)
+  unified_message varchar(1024)
+  error_category varchar(64)
+  clear_pan_possible boolean [not null]
+  feature_data jsonb
+  
+  Note: 'Gateway error code mapping'
+}
+
+Table payment_link {
+  payment_link_id varchar(255) [pk]
+  payment_id varchar(64) [not null]
+  link_to_pay varchar(255) [not null, note: 'Public payment URL']
+  merchant_id varchar(64) [not null]
+  amount bigint [not null]
+  currency varchar(3)
+  created_at timestamp [not null]
+  last_modified_at timestamp [not null]
+  fulfilment_time timestamp
+  custom_merchant_name varchar(64)
+  payment_link_config jsonb
+  description varchar(255)
+  profile_id varchar(64)
+  secure_link varchar(255)
+  
+  Note: 'Payment links for hosted checkout'
+}
+
+Table generic_link {
+  link_id varchar(64) [pk]
+  primary_reference varchar(64) [not null]
+  merchant_id varchar(64) [not null]
+  created_at timestamp [not null]
+  last_modified_at timestamp [not null]
+  expiry timestamp [not null]
+  link_data jsonb [not null]
+  link_status jsonb [not null]
+  link_type varchar(32) [not null]
+  url text [not null]
+  return_url text
+  
+  Note: 'Generic links for various use cases'
+}
+
+Table file_metadata {
+  file_id varchar(64) [pk]
+  merchant_id varchar(255) [pk]
+  file_name varchar(255)
+  file_size integer [not null]
+  file_type varchar(255) [not null]
+  provider_file_id varchar(255)
+  file_upload_provider varchar(255)
+  available boolean [not null]
+  created_at timestamp [not null]
+  connector_label varchar(255)
+  profile_id varchar(64)
+  merchant_connector_id varchar(32)
+  
+  Note: 'Metadata for uploaded files'
+}
+
+Table cards_info {
+  card_iin varchar(16) [pk, note: 'Card BIN/IIN']
+  card_issuer text
+  card_network text [note: 'visa, mastercard, amex']
+  card_type text [note: 'credit, debit, prepaid']
+  card_subtype text
+  card_issuing_country text
+  bank_code_id varchar(32)
+  bank_code varchar(32)
+  country_code varchar(32)
+  date_created timestamp [not null]
+  last_updated timestamp
+  last_updated_provider text
+  
+  Note: 'Card BIN/IIN database for metadata lookup'
+}
+
+Table configs {
+  key varchar(255) [pk]
+  config text [not null]
+  
+  Note: 'System configuration key-value store'
+}
+
+
+// ============================================
+// RELATIONSHIPS
+// ============================================
+
+// Core Payment Flow
+Ref: payment_attempt.payment_id > payment_intent.payment_id [note: 'Attempts belong to payments']
+Ref: payment_attempt.merchant_id > merchant_account.merchant_id
+Ref: payment_intent.merchant_id > merchant_account.merchant_id
+Ref: payment_intent.customer_id > customers.customer_id
+Ref: payment_intent.profile_id > business_profile.profile_id
+Ref: payment_intent.organization_id > organization.org_id
+Ref: payment_intent.shipping_address_id > address.address_id
+Ref: payment_intent.billing_address_id > address.address_id
+
+// Refund Flow
+Ref: refund.payment_id > payment_intent.payment_id
+Ref: refund.merchant_id > merchant_account.merchant_id
+Ref: refund.attempt_id > payment_attempt.attempt_id
+Ref: refund.organization_id > organization.org_id
+
+// Capture Flow
+Ref: captures.payment_id > payment_intent.payment_id
+Ref: captures.merchant_id > merchant_account.merchant_id
+Ref: captures.authorized_attempt_id > payment_attempt.attempt_id
+
+// Incremental Auth
+Ref: incremental_authorization.payment_id > payment_intent.payment_id
+Ref: incremental_authorization.merchant_id > merchant_account.merchant_id
+
+// Merchant Hierarchy
+Ref: merchant_account.organization_id > organization.org_id
+Ref: merchant_account.parent_merchant_id > merchant_account.merchant_id [note: 'Sub-merchant relationship']
+Ref: merchant_connector_account.merchant_id > merchant_account.merchant_id
+Ref: merchant_connector_account.profile_id > business_profile.profile_id
+Ref: merchant_key_store.merchant_id > merchant_account.merchant_id
+Ref: business_profile.merchant_id > merchant_account.merchant_id
+
+// Customer & Address
+Ref: customers.merchant_id > merchant_account.merchant_id
+Ref: customers.address_id > address.address_id
+Ref: address.merchant_id > merchant_account.merchant_id
+Ref: address.customer_id > customers.customer_id
+Ref: address.payment_id > payment_intent.payment_id
+
+// Payment Methods
+Ref: payment_methods.customer_id > customers.customer_id
+Ref: payment_methods.merchant_id > merchant_account.merchant_id
+Ref: payment_attempt.payment_method_id > payment_methods.payment_method_id
+Ref: mandate.customer_id > customers.customer_id
+Ref: mandate.merchant_id > merchant_account.merchant_id
+Ref: mandate.payment_method_id > payment_methods.payment_method_id
+Ref: payment_attempt.mandate_id > mandate.mandate_id
+
+// Authentication
+Ref: authentication.merchant_id > merchant_account.merchant_id
+Ref: authentication.payment_method_id > payment_methods.payment_method_id
+Ref: authentication.payment_id > payment_intent.payment_id
+Ref: authentication.profile_id > business_profile.profile_id
+Ref: authentication.organization_id > organization.org_id
+Ref: payment_attempt.authentication_id > authentication.authentication_id
+
+// Fraud Management
+Ref: fraud_check.payment_id > payment_intent.payment_id
+Ref: fraud_check.merchant_id > merchant_account.merchant_id
+Ref: fraud_check.attempt_id > payment_attempt.attempt_id
+Ref: blocklist.merchant_id > merchant_account.merchant_id
+Ref: blocklist_fingerprint.merchant_id > merchant_account.merchant_id
+Ref: blocklist_lookup.merchant_id > merchant_account.merchant_id
+
+// Payouts
+Ref: payouts.merchant_id > merchant_account.merchant_id
+Ref: payouts.customer_id > customers.customer_id
+Ref: payouts.address_id > address.address_id
+Ref: payouts.profile_id > business_profile.profile_id
+Ref: payout_attempt.payout_id > payouts.payout_id
+Ref: payout_attempt.merchant_id > merchant_account.merchant_id
+Ref: payout_attempt.profile_id > business_profile.profile_id
+
+// Disputes
+Ref: dispute.payment_id > payment_intent.payment_id
+Ref: dispute.attempt_id > payment_attempt.attempt_id
+Ref: dispute.merchant_id > merchant_account.merchant_id
+Ref: dispute.profile_id > business_profile.profile_id
+Ref: dispute.organization_id > organization.org_id
+
+// Events & Webhooks
+Ref: events.merchant_id > merchant_account.merchant_id
+Ref: events.business_profile_id > business_profile.profile_id
+
+// Payment Links
+Ref: payment_link.payment_id > payment_intent.payment_id
+Ref: payment_link.merchant_id > merchant_account.merchant_id
+Ref: payment_link.profile_id > business_profile.profile_id
+Ref: generic_link.merchant_id > merchant_account.merchant_id
+
+// Routing
+Ref: routing_algorithm.profile_id > business_profile.profile_id
+Ref: routing_algorithm.merchant_id > merchant_account.merchant_id
+Ref: dynamic_routing_stats.payment_id > payment_intent.payment_id
+Ref: dynamic_routing_stats.attempt_id > payment_attempt.attempt_id
+Ref: dynamic_routing_stats.merchant_id > merchant_account.merchant_id
+Ref: dynamic_routing_stats.profile_id > business_profile.profile_id
+
+// Files
+Ref: file_metadata.merchant_id > merchant_account.merchant_id
+Ref: file_metadata.profile_id > business_profile.profile_id
+
+// User Access Control
+Ref: user_roles.user_id > users.user_id
+Ref: user_roles.merchant_id > merchant_account.merchant_id
+Ref: user_roles.role_id > roles.role_id
+Ref: user_roles.org_id > organization.org_id
+Ref: user_roles.profile_id > business_profile.profile_id
+Ref: roles.merchant_id > merchant_account.merchant_id
+Ref: roles.org_id > organization.org_id
+Ref: roles.profile_id > business_profile.profile_id
+Ref: api_keys.merchant_id > merchant_account.merchant_id
+
+// Subscriptions
+Ref: subscription.merchant_id > merchant_account.merchant_id
+Ref: subscription.customer_id > customers.customer_id
+Ref: subscription.profile_id > business_profile.profile_id
+Ref: invoice.subscription_id > subscription.id
+Ref: invoice.merchant_id > merchant_account.merchant_id
+Ref: invoice.customer_id > customers.customer_id
+Ref: invoice.profile_id > business_profile.profile_id
